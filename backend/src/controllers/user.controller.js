@@ -31,11 +31,14 @@ async  function registerUser (req, res) {
 
 
     res.status(201).json ({
-        id: user._id,
+        message: "User created successfully",
+        user:{
+            id: user._id,
         fullName: user.fullName,
         email: user.email,
-        password: user.password,
+        
         token
+        }
     });
 }
 

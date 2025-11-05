@@ -5,14 +5,21 @@ const chatSchema = new mongoose.Schema({
 
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "users"
+        ref: "users",
+        required: true
     },
     title: {
         type: String,
         required: true
     },
+    lastActivity: {
+        type: Date,
+        default: Date.now
+    }
 
 
+}, {
+    timestamps: true
 })    
 
 
