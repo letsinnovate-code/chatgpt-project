@@ -1,11 +1,6 @@
 
 import chatModel from "../models/chat.model.js";
 
-
-
-
-
-
  async function createChat(req,res) {
     const {title} = req.body;
     const user = req.user;

@@ -7,11 +7,12 @@ async function generateText(content) {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: content,
+    
+    
   });
   
   return response.text;
+ 
 }
 
-export default {
-  generateText
-}
+export default generateText;
