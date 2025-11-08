@@ -1,10 +1,14 @@
 import { Server } from "socket.io";
 
-import generateText from "../services/ai.service.js";
+import { generateText , generateVector} from "../services/ai.service.js";
 import cookie from "cookie";
 import jwt from "jsonwebtoken";
 import userModel from "../models/user.model.js";
 import messageModel from "../models/message.model.js";
+import {createMemory, queryMemory} from "../services/vector.service.js";
+import { text } from "stream/consumers";
+import { log } from "console";
+import { chat } from "@pinecone-database/pinecone/dist/assistant/data/chat.js";
 
 function initSocketServer(httpServer) {
     const io = new Server(httpServer, {});
@@ -42,9 +46,8 @@ function initSocketServer(httpServer) {
     // socket connection between client to server
     io.on("connection", async (socket) => {
         console.log("a user connected");
-        console.log(socket.user);
-
-
+        console.log("User Details",socket.user);
+    
         socket.on("disconnect", () => {
             console.log("user disconnected");
         })
@@ -53,16 +56,41 @@ function initSocketServer(httpServer) {
 
         socket.on("chat-message", async (messagePayLoad) => {
             
-            await messageModel.create({
+           
+           const message = await messageModel.create({
                 user: socket.user.id,
                 chat: messagePayLoad.chat,
                 content: messagePayLoad.content,
                 role: "user"
             });
+            const vector = await generateVector(messagePayLoad.content);
+            
+           const memory = await queryMemory({
+                queryVector:vector,
+                limit: 5,
+                filter:{
+                    metadata:{}
+                }
+               
+            })
+            console.log(memory);
+            
+            
+            await createMemory({
+                vector,
+                messageId: message._id,
+                metadata:{
+                    chatId: messagePayLoad.chat,
+                    userId: socket.user.id,
+                    text:messagePayLoad.content
+                },
+               
+
+            })
 
             const chatHistory = ( await messageModel.find({
                 chat: messagePayLoad.chat
-            }).sort({createdAt:-1}).limit(10).lean()).reverse();
+            }).sort({createdAt:-1}).limit(20).lean()).reverse();
             
             
             const response = await generateText(chatHistory.map(item => {
@@ -71,13 +99,25 @@ function initSocketServer(httpServer) {
                     parts:[{text: item.content}]
                 }
             }));
-            await messageModel.create({
+
+            const responseVector = await generateVector(response);
+          const responseMessage =  await messageModel.create({
                 user: socket.user.id,
                 chat: messagePayLoad.chat,
                 content: response,
                 role: "model"
             })
 
+            await createMemory({
+                vector: responseVector,
+                messageId: responseMessage._id,
+                metadata:{
+                    chatId: messagePayLoad.chat,
+                    userId: socket.user.id,
+                    text: response
+                },
+                
+            });
             io.emit("message-response", {
                 content: response,
                 chatId: messagePayLoad.chat

@@ -13,6 +13,7 @@ import chatModel from "../models/chat.model.js";
     res.status(201).json({
         message:"Chat created successfully",
         chat:{
+            id: chat._id,
             title: chat.title,
         user: chat.user,
         lastActivity: chat.lastActivity
