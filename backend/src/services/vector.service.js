@@ -5,38 +5,39 @@ import { Pinecone } from '@pinecone-database/pinecone'
 const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 
 // Create a dense index with integrated embedding
-
-const chatgptIndex = pc.index('chat-gpt');
-
+const indexName = process.env.PINECONE_INDEX || 'chat-gpt';
+const chatgptIndex = pc.index(indexName);
 
 async function createMemory({vector, metadata, messageId}) {
-    await chatgptIndex.upsert([{
-        id: messageId,
-        values: vector,
-        metadata
-    }])
-
-    
+    try {
+        await chatgptIndex.upsert([{
+            id: messageId?.toString() || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            values: vector,
+            metadata: metadata || {}
+        }]);
+    } catch (error) {
+        console.error("Pinecone createMemory error:", error.message);
+    }
 }
 
-
-async function  queryMemory({queryVector,limit = 5, metadata}) {
-
-    const data = await chatgptIndex.query(
-        {
+async function queryMemory({queryVector, limit = 5, metadata}) {
+    try {
+        const queryOptions = {
             vector: queryVector,
             topK: limit,
-            filter: {
-                metadata: metadata ? {metadata}:undefined
-            
-        },
-        includeMetadata: true
+            includeMetadata: true
+        };
 
+        if (metadata && Object.keys(metadata).length > 0) {
+            queryOptions.filter = metadata;
         }
-    
-    );
-    return data.matches
-    
+
+        const data = await chatgptIndex.query(queryOptions);
+        return data?.matches || [];
+    } catch (error) {
+        console.error("Pinecone queryMemory error:", error.message);
+        return [];
+    }
 }
 
-export {createMemory, queryMemory}
+export { createMemory, queryMemory }

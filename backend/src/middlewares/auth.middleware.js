@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 
 
 async function authUser (req, res, next) {
-    const token = req.cookies.token;
+    const token = req.cookies?.token || (req.headers.authorization && req.headers.authorization.startsWith("Bearer ") ? req.headers.authorization.split(" ")[1] : null);
     if (!token) {
         return res.status(401).send("Unauthorized!");
     }
