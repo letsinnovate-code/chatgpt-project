@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Vite dev server proxies /api to http://localhost:3000
+// Vite dev server proxies /api to http://localhost:3002
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -64,7 +65,37 @@ export const authAPI = {
     });
     return res.data;
   },
+
+  /**
+   * Reset / Forgot password
+   * Expects: { email, newPassword }
+   */
+  async forgotPassword({ email, newPassword }) {
+    const res = await apiClient.post('/forgot-password', {
+      email: email.trim().toLowerCase(),
+      newPassword,
+    });
+    return res.data;
+  },
+
+  /**
+   * Fetch authenticated user profile
+   */
+  async getProfile() {
+    const res = await apiClient.get('/profile');
+    return res.data;
+  },
+
+  /**
+   * Update authenticated user profile / change password
+   * Expects optional: { fullName: { firstName, lastName }, email, currentPassword, newPassword }
+   */
+  async updateUser(payload) {
+    const res = await apiClient.put('/profile', payload);
+    return res.data;
+  },
 };
+
 
 export const chatAPI = {
   /**

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import ChatItem from './ChatItem';
+import UserProfileModal from '../profile/UserProfileModal';
 import {
   Plus,
   Search,
@@ -10,8 +11,10 @@ import {
   PanelLeftOpen,
   Sparkles,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Settings
 } from 'lucide-react';
+
 
 export default function Sidebar({
   chats,
@@ -24,6 +27,7 @@ export default function Sidebar({
 }) {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Filter chats by search query
   const filteredChats = useMemo(() => {
@@ -208,27 +212,53 @@ export default function Sidebar({
 
         {/* User Profile & Logout Footer */}
         <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/60">
-          <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60 hover:border-zinc-700/80 transition-all">
+            <button
+              type="button"
+              onClick={() => setIsProfileModalOpen(true)}
+              title="Click to view and edit profile"
+              className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer group flex-1"
+            >
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                 {initials}
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-200 truncate">{fullName}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-zinc-200 group-hover:text-emerald-400 transition-colors truncate">
+                  {fullName}
+                </p>
                 <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
               </div>
-            </div>
-
-            <button
-              onClick={logout}
-              title="Log out"
-              className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer"
-            >
-              <LogOut className="h-4 w-4" />
             </button>
+
+            <div className="flex items-center gap-1 shrink-0 ml-1.5">
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                title="Profile Settings"
+                className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={logout}
+                title="Log out"
+                className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
+
+      {/* User Profile & Password Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </>
   );
 }
+

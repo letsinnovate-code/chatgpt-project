@@ -84,6 +84,89 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const forgotPassword = async ({ email, newPassword }) => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const data = await authAPI.forgotPassword({ email, newPassword });
+      return { success: true, message: data.message || 'Password reset successfully.' };
+    } catch (err) {
+      const msg = err.message || 'Password reset failed. Please try again.';
+      setAuthError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    if (!token || token.startsWith('demo-guest-token-')) return user;
+    try {
+      const data = await authAPI.getProfile();
+      if (data?.user) {
+        const updated = {
+          ...user,
+          ...data.user,
+          token: token,
+        };
+        setUser(updated);
+        localStorage.setItem('chatgpt_user', JSON.stringify(updated));
+        return updated;
+      }
+    } catch (err) {
+      console.warn('Failed to refresh user profile:', err.message);
+    }
+    return user;
+  };
+
+  const updateUserProfile = async (payload) => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      if (token && token.startsWith('demo-guest-token-')) {
+        // Guest mode simulated update
+        const updated = {
+          ...user,
+          fullName: payload.fullName || {
+            firstName: payload.firstName || user.fullName?.firstName,
+            lastName: payload.lastName || user.fullName?.lastName,
+          },
+          email: payload.email || user.email,
+        };
+        setUser(updated);
+        localStorage.setItem('chatgpt_user', JSON.stringify(updated));
+        return { success: true, user: updated, message: 'Profile updated in guest mode.' };
+      }
+
+      const data = await authAPI.updateUser(payload);
+      if (data?.user) {
+        const updated = {
+          ...user,
+          fullName: data.user.fullName,
+          email: data.user.email,
+          token: token,
+        };
+        setUser(updated);
+        localStorage.setItem('chatgpt_user', JSON.stringify(updated));
+        return { success: true, user: updated, message: data.message || 'Profile updated successfully.' };
+      }
+      return { success: true, message: data.message || 'Profile updated successfully.' };
+    } catch (err) {
+      const msg = err.message || 'Failed to update profile. Please try again.';
+      setAuthError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Synchronize fresh profile on mount
+  useEffect(() => {
+    if (token && !token.startsWith('demo-guest-token-')) {
+      fetchUserProfile();
+    }
+  }, [token]);
+
   const logout = () => {
     saveAuthData(null, null);
     setAuthError(null);
@@ -115,6 +198,9 @@ export function AuthProvider({ children }) {
         authError,
         login,
         register,
+        forgotPassword,
+        fetchUserProfile,
+        updateUserProfile,
         loginAsGuest,
         logout,
         clearError,
@@ -123,6 +209,7 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
+
 }
 
 export function useAuth() {

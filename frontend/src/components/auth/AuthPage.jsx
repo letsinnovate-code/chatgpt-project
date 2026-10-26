@@ -1,42 +1,89 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, Bot, Lock, Mail, User, ArrowRight, ShieldCheck, Database, Zap, AlertCircle } from 'lucide-react';
+import {
+  Sparkles,
+  Bot,
+  Lock,
+  Mail,
+  User,
+  ArrowRight,
+  ShieldCheck,
+  Database,
+  Zap,
+  AlertCircle,
+  CheckCircle2,
+  KeyRound,
+  ArrowLeft
+} from 'lucide-react';
 
 export default function AuthPage() {
-  const { login, register, loginAsGuest, isLoading, authError, clearError } = useAuth();
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const { login, register, forgotPassword, loginAsGuest, isLoading, authError, clearError } = useAuth();
+  
+  // 'login' | 'register' | 'forgot'
+  const [authMode, setAuthMode] = useState('login');
 
   // Form states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [validationError, setValidationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const resetMessages = () => {
+    setValidationError('');
+    setSuccessMessage('');
+    clearError();
+  };
+
+  const switchMode = (mode) => {
+    setAuthMode(mode);
+    resetMessages();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setValidationError('');
-    clearError();
+    resetMessages();
 
-    if (!email || !password) {
-      setValidationError('Please fill in all required fields.');
+    if (!email) {
+      setValidationError('Please enter your email address.');
       return;
     }
 
-    if (isRegisterMode && (!firstName || !lastName)) {
-      setValidationError('Please enter both first and last name.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setValidationError('Password should be at least 6 characters long.');
-      return;
-    }
-
-    if (isRegisterMode) {
+    if (authMode === 'register') {
+      if (!firstName || !lastName) {
+        setValidationError('Please enter both first and last name.');
+        return;
+      }
+      if (!password || password.length < 6) {
+        setValidationError('Password should be at least 6 characters long.');
+        return;
+      }
       await register({ firstName, lastName, email, password });
-    } else {
+    } else if (authMode === 'login') {
+      if (!password) {
+        setValidationError('Please enter your password.');
+        return;
+      }
       await login({ email, password });
+    } else if (authMode === 'forgot') {
+      if (!password || password.length < 6) {
+        setValidationError('New password must be at least 6 characters long.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setValidationError('Passwords do not match. Please verify.');
+        return;
+      }
+
+      const result = await forgotPassword({ email, newPassword: password });
+      if (result.success) {
+        setSuccessMessage(result.message || 'Password reset successfully! You can now log in.');
+        setPassword('');
+        setConfirmPassword('');
+      }
     }
   };
 
@@ -61,7 +108,7 @@ export default function AuthPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                  ChatGPT
+                  Chatbot
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     2.0 Next-Gen
                   </span>
@@ -125,51 +172,76 @@ export default function AuthPage() {
         {/* Right Side: Auth Form */}
         <div className="p-8 lg:p-10 flex flex-col justify-center bg-zinc-950/40">
           <div className="max-w-md w-full mx-auto">
-            {/* Mode Tabs */}
-            <div className="flex p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 mb-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegisterMode(false);
-                  setValidationError('');
-                  clearError();
-                }}
-                className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-                  !isRegisterMode
-                    ? 'bg-zinc-800 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegisterMode(true);
-                  setValidationError('');
-                  clearError();
-                }}
-                className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-                  isRegisterMode
-                    ? 'bg-zinc-800 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                Create Account
-              </button>
-            </div>
+            {/* Mode Tabs (Only when not in forgot password mode) */}
+            {authMode !== 'forgot' ? (
+              <div className="flex p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 mb-6">
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
+                    authMode === 'login'
+                      ? 'bg-zinc-800 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode('register')}
+                  className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
+                    authMode === 'register'
+                      ? 'bg-zinc-800 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Create Account
+                </button>
+              </div>
+            ) : (
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors mb-2 cursor-pointer"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Back to Sign In</span>
+                </button>
+              </div>
+            )}
 
             {/* Header */}
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-white">
-                {isRegisterMode ? 'Create your account' : 'Welcome back'}
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                {authMode === 'forgot' && <KeyRound className="h-5 w-5 text-emerald-400" />}
+                {authMode === 'register' && 'Create your account'}
+                {authMode === 'login' && 'Welcome back'}
+                {authMode === 'forgot' && 'Reset your password'}
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                {isRegisterMode
-                  ? 'Sign up to start chatting with persistent AI memory.'
-                  : 'Enter your credentials to access your saved conversations.'}
+                {authMode === 'register' && 'Sign up to start chatting with persistent AI memory.'}
+                {authMode === 'login' && 'Enter your credentials to access your saved conversations.'}
+                {authMode === 'forgot' && 'Enter your email and a new password to reset your access.'}
               </p>
             </div>
+
+            {/* Success Banner */}
+            {successMessage && (
+              <div className="mb-5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-start gap-2.5 animate-fadeIn">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" />
+                <div className="flex-1">
+                  <p>{successMessage}</p>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('login')}
+                    className="mt-2 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 cursor-pointer"
+                  >
+                    Click here to Sign In now →
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Error Banners */}
             {(validationError || authError) && (
@@ -181,7 +253,7 @@ export default function AuthPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isRegisterMode && (
+              {authMode === 'register' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-zinc-300 mb-1.5">
@@ -195,7 +267,7 @@ export default function AuthPage() {
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="John"
                         className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                        required={isRegisterMode}
+                        required={authMode === 'register'}
                       />
                     </div>
                   </div>
@@ -211,7 +283,7 @@ export default function AuthPage() {
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Doe"
                         className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                        required={isRegisterMode}
+                        required={authMode === 'register'}
                       />
                     </div>
                   </div>
@@ -236,9 +308,20 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    {authMode === 'forgot' ? 'New Password' : 'Password'}
+                  </label>
+                  {authMode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgot')}
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
                   <input
@@ -252,6 +335,25 @@ export default function AuthPage() {
                 </div>
               </div>
 
+              {authMode === 'forgot' && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -261,7 +363,11 @@ export default function AuthPage() {
                   <div className="h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>{isRegisterMode ? 'Create Account' : 'Sign In'}</span>
+                    <span>
+                      {authMode === 'register' && 'Create Account'}
+                      {authMode === 'login' && 'Sign In'}
+                      {authMode === 'forgot' && 'Reset Password'}
+                    </span>
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -269,26 +375,28 @@ export default function AuthPage() {
             </form>
 
             {/* Quick Demo Helper */}
-            <div className="mt-5 pt-4 border-t border-zinc-800/60 flex flex-col items-center gap-2.5 text-center">
-              <button
-                type="button"
-                onClick={fillDemoAccount}
-                className="text-xs text-zinc-400 hover:text-emerald-400 underline underline-offset-4 transition-colors cursor-pointer"
-              >
-                Click to prefill test credentials
-              </button>
+            {authMode !== 'forgot' && (
+              <div className="mt-5 pt-4 border-t border-zinc-800/60 flex flex-col items-center gap-2.5 text-center">
+                <button
+                  type="button"
+                  onClick={fillDemoAccount}
+                  className="text-xs text-zinc-400 hover:text-emerald-400 underline underline-offset-4 transition-colors cursor-pointer"
+                >
+                  Click to prefill test credentials
+                </button>
 
-              <span className="text-[10px] text-zinc-600">— or —</span>
+                <span className="text-[10px] text-zinc-600">— or —</span>
 
-              <button
-                type="button"
-                onClick={loginAsGuest}
-                className="text-xs px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-emerald-400 border border-zinc-800 hover:border-zinc-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Explore in Guest Demo Mode</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={loginAsGuest}
+                  className="text-xs px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-emerald-400 border border-zinc-800 hover:border-zinc-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Explore in Guest Demo Mode</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

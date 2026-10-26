@@ -18,10 +18,11 @@ const userSchema = new mongoose.Schema({
         unique: true
     },
     password:{
-        type: String
+        type: String,
+        required: true
     }
-})
+}, { timestamps: true });
 
 
 const userModel = mongoose.model("users", userSchema);
-export default userModel
+export default userModel;

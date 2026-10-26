@@ -24,8 +24,13 @@ export function SocketProvider({ children }) {
 
     setConnectionStatus('connecting');
 
-    // If VITE_BACKEND_URL is specified (e.g. http://localhost:3000), use that; otherwise use relative origin (Vite proxy)
-    const socketUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+    // Connect directly to the backend socket server (port 3002 in local dev)
+    const socketUrl =
+      import.meta.env.VITE_BACKEND_URL ||
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3002'
+        : window.location.origin);
+
 
     const newSocket = io(socketUrl, {
       path: '/socket.io',

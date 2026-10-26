@@ -11,7 +11,20 @@ import { log } from "console";
 import { chat } from "@pinecone-database/pinecone/dist/assistant/data/chat.js";
 
 function initSocketServer(httpServer) {
-    const io = new Server(httpServer, {});
+    const io = new Server(httpServer, {
+        cors: {
+            origin: (origin, callback) => {
+                // Allow any localhost origin or requests without origin header
+                if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+                    return callback(null, true);
+                }
+                callback(null, true);
+            },
+            methods: ["GET", "POST"],
+            credentials: true
+        }
+    });
+
 
 
     // middleware for socket connection verify that user logged in or not 
